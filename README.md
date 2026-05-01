@@ -4,9 +4,9 @@
 
 This Lab Equipment Booking System is designed to facilitate the management of lab equipment and students in a university laboratory. It provides functionalities for both lab administrators and students, allowing them to perform various operations such as adding equipment, registering students, issuing/returning equipment, managing waitlists, and calculating fines for late returns.
 
-## Demo
+## 🎥 Demo Video
 
-[![Watch the Demo](https://img.shields.io/badge/Watch-Demo%20Video-red?style=for-the-badge&logo=youtube)](https://youtu.be/dEdI96eqtjo?si=ywvORK7uBOVbtBWY)
+[▶ Watch Demo Video](https://youtu.be/dEdI96eqtjo?si=ywvORK7uBOVbtBWY)
 
 ## Features
 
@@ -32,7 +32,80 @@ This Lab Equipment Booking System is designed to facilitate the management of la
 | **HashMap** | `InventoryMap` | O(1) average-case equipment lookup, insert, and delete |
 | **Queue (FIFO)** | `WaitlistQueue` | Manages student waitlists in order of arrival |
 | **Stack (LIFO)** | `BookingStack` | Tracks booking history; supports undo operations |
-| **Min-Heap** | `EquipmentHeap` | Prioritises equipment by risk level for inspection workflows |
+| **Max-Heap** | `EquipmentHeap` | Prioritises equipment by risk level for inspection workflows |
+
+## Core Heart Algorithm
+
+The central algorithm of this system lives in `BookingService.java` — specifically the `issueEquipment` method. It is the decision engine that every booking request passes through.
+
+### Equipment Issue Flow
+
+```
+issueEquipment(student, equipmentId)
+        │
+        ▼
+ Is student suspended?  ──YES──▶  throw SuspendedUserException
+        │ NO
+        ▼
+ Has unpaid fine > 0?   ──YES──▶  throw UnpaidFineException
+        │ NO
+        ▼
+ Active bookings >= 3?  ──YES──▶  throw BorrowLimitExceededException
+        │ NO
+        ▼
+ Equipment exists in    ──NO───▶  throw EquipmentNotFoundException
+    InventoryMap?
+        │ YES
+        ▼
+ Equipment available    ──NO───▶  waitlist.enqueue(student)
+  (count > 0)?                    throw EquipmentNotFoundException
+        │ YES                     ("Added to waitlist")
+        ▼
+ Create Booking object
+ student.activeBookings.add(booking)
+ equipment.decrementAvailable()
+        │
+        ▼
+   Return booking ✅
+```
+
+### Equipment Return Flow
+
+```
+returnEquipment(student, booking)
+        │
+        ▼
+ Set returnDate = today
+ Set status = "RETURNED"
+        │
+        ▼
+ FineService.calculateFine(booking)
+   daysLate = returnDate - dueDate
+   fine = daysLate > 0 ? daysLate × Rs.10 : 0
+        │
+        ▼
+ fine > 0?  ──YES──▶  student.pendingFine += fine
+        │ NO
+        ▼
+ equipment.incrementAvailable()
+ student.activeBookings.remove(booking)
+        │
+        ▼
+ waitlist.isEmpty()?  ──NO──▶  next = waitlist.dequeue()
+        │                       notify next student
+        ▼
+   Return fine amount ✅
+```
+
+### Why These Data Structures?
+
+**HashMap (`InventoryMap`)** — Equipment lookup by ID must be instant. A HashMap gives O(1) average get/put, which is critical when the system scales to hundreds of equipment items.
+
+**Queue (`WaitlistQueue`)** — Fairness demands FIFO. The student who waited longest must be served first when equipment becomes available. A LinkedList-backed queue gives O(1) enqueue and dequeue.
+
+**Stack (`BookingStack`)** — Booking history is naturally last-in-first-out. The most recent booking is the one most likely to be undone or reviewed, making a stack the ideal structure.
+
+**Max-Heap (`EquipmentHeap`)** — For maintenance and inspection workflows, the highest-risk equipment must always be inspected first. A heap gives O(log n) insert and O(log n) extract-max, always surfacing the most critical item at the top.
 
 ## Project Structure
 
@@ -55,6 +128,46 @@ This Lab Equipment Booking System is designed to facilitate the management of la
 └── FineServiceTest.java       # JUnit tests for FineService
 ```
 
+## Test Cases
+
+Tests are written using **JUnit 5** and run directly inside **IntelliJ IDEA** (right-click the test file → Run).
+
+### BookingServiceTest
+
+| Test | What it verifies |
+|---|---|
+| `happyPath_bookingSucceeds()` | A valid student can book available equipment; status is `ACTIVE`, inventory decrements, and booking is added to student's list |
+| `borrowLimit_throwsWhenExceeded()` | After 3 active bookings, a 4th attempt throws `BorrowLimitExceededException` |
+| `unpaidFine_blocksNewBooking()` | A student with `pendingFine > 0` cannot book; throws `UnpaidFineException` |
+| `suspendedUser_blocksBooking()` | A suspended student cannot book; throws `SuspendedUserException` |
+
+### BookingStackTest
+
+| Test | What it verifies |
+|---|---|
+| `lifoOrder_isCorrect()` | Push A, B, C → pop returns C, B, A in that order (LIFO) |
+| `peek_doesNotRemove()` | `peek()` returns the top element but size stays the same |
+| `overflow_throwsException()` | Pushing beyond capacity throws `RuntimeException` (Stack Overflow) |
+| `underflow_throwsException()` | Popping from an empty stack throws `RuntimeException` (Stack Underflow) |
+
+### WaitlistQueueTest
+
+| Test | What it verifies |
+|---|---|
+| `fifoOrder_isCorrect()` | Enqueue Alice, Bob, Charlie → dequeue returns Alice, Bob, Charlie in order (FIFO) |
+| `peek_doesNotRemove()` | `peek()` returns the front element but does not remove it; size stays 1 |
+| `dequeueEmpty_throwsException()` | Dequeuing from an empty queue throws `RuntimeException` |
+| `isEmpty_correctlyDetected()` | `isEmpty()` returns true on a new queue and false after an enqueue |
+
+### FineServiceTest
+
+| Test | What it verifies |
+|---|---|
+| `onTime_returnsZeroFine()` | Returning exactly on the due date results in a fine of Rs. 0 |
+| `tenDaysLate_correctFine()` | Returning 10 days late results in Rs. 100 (10 × Rs. 10) |
+| `nullReturnDate_returnsZero()` | If equipment has not been returned yet (`returnDate = null`), fine is Rs. 0 |
+| `returnBeforeDue_returnsZero()` | Returning 2 days early results in a fine of Rs. 0 |
+
 ## Assumptions
 
 1. Equipment is pre-loaded at startup with IDs `E001`, `E002`, and `E003`.
@@ -69,7 +182,7 @@ This Lab Equipment Booking System is designed to facilitate the management of la
 
 ## Installation
 
-To run this application, you need to have **Maven** and **Java 17+** installed.
+To run this application, you need **Java 17+** and **IntelliJ IDEA** installed.
 
 ### Clone the Repository
 
@@ -77,33 +190,22 @@ To run this application, you need to have **Maven** and **Java 17+** installed.
 git clone https://github.com/<your-username>/LabEquipmentBookingSystem.git
 ```
 
-### Navigate to the Project Directory
+### Open in IntelliJ IDEA
 
-```bash
-cd LabEquipmentBookingSystem
-```
-
-### Build the Project
-
-```bash
-mvn clean
-mvn compile
-mvn package
-```
+1. Open IntelliJ IDEA → **File → Open** → select the project folder.
+2. IntelliJ will auto-detect the project structure.
+3. Make sure **JUnit 5** is added as a dependency (IntelliJ will prompt you to add it if missing when you open any test file).
 
 ### Run the Application
 
-```bash
-java -jar target/LabEquipmentBookingSystem-1.0-SNAPSHOT.jar
-```
-
-> If you encounter an error, the JAR filename may differ. Check the `target/` folder and replace `LabEquipmentBookingSystem-1.0-SNAPSHOT` with the actual filename.
+1. Open `Main.java`.
+2. Click the green **Run** button next to the `main` method, or press `Shift + F10`.
 
 ### Run Tests
 
-```bash
-mvn test
-```
+1. Open any test file (e.g., `BookingServiceTest.java`).
+2. Right-click inside the file → **Run 'BookingServiceTest'**.
+3. Or right-click the project root → **Run All Tests** to execute the full test suite.
 
 ## Usage Example
 
