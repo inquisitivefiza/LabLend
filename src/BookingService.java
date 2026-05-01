@@ -1,69 +1,66 @@
+
 public class BookingService {
     private InventoryMap inventory;
+    private WaitlistQueue<Student> waitlist;  // ADD THIS
 
     public BookingService(InventoryMap inventory) {
         this.inventory = inventory;
+        this.waitlist = new WaitlistQueue<>();   // ADD THIS
     }
 
-    /**
-     * Issue equipment to a student.
-     * Performs all validation checks before creating the booking.
-     */
     public Booking issueEquipment(Student student, String equipmentId)
-            throws SuspendedUserException,
-            UnpaidFineException,
-            BorrowLimitExceededException,
-            EquipmentNotFoundException {
+            throws SuspendedUserException, UnpaidFineException,
+            BorrowLimitExceededException, EquipmentNotFoundException {
 
-        // Check 1: student must not be suspended
         if (student.isSuspended())
             throw new SuspendedUserException("Student is suspended");
-
-        // Check 2: student must have no pending fines
         if (student.getPendingFine() > 0)
             throw new UnpaidFineException("Clear fines first");
-
-        // Check 3: student must not exceed borrow limit
         if (student.getActiveBookings().size() >= Constants.MAX_BORROW_LIMIT)
             throw new BorrowLimitExceededException("Borrow limit reached");
 
-        // Check 4: equipment must exist and be available
-        Equipment equipment = inventory.get(equipmentId);  // ✅ fixed variable name
-        if (equipment == null || !equipment.isAvailable())
-            throw new EquipmentNotFoundException("Equipment unavailable");
+        Equipment equipment = inventory.get(equipmentId);
+        if (equipment == null)
+            throw new EquipmentNotFoundException("Equipment not found: " + equipmentId);
 
-        // Create booking
+        // ADD WAITLIST LOGIC HERE:
+        if (!equipment.isAvailable()) {
+            waitlist.enqueue(student);    // put on waitlist instead of crashing
+            System.out.println(student.getName() + " added to waitlist for " + equipmentId);
+            throw new EquipmentNotFoundException("Equipment unavailable. Added to waitlist.");
+        }
+
         Booking booking = new Booking(student, equipment);
         student.getActiveBookings().add(booking);
-        equipment.setAvailable(false);    // ✅ fixed typo from original 'eqipment'
+        equipment.decrementAvailable();   // use new method
         return booking;
     }
 
-    /**
-     * Return equipment and calculate fine.
-     */
+    // ADD: get next person from waitlist
+    public Student getNextFromWaitlist() {
+        if (waitlist.isEmpty()) return null;
+        return waitlist.dequeue();
+    }
+
     public double returnEquipment(Student student, Booking booking) {
         booking.setReturnDate(java.time.LocalDate.now());
         booking.setStatus("RETURNED");
-
         FineService fineService = new FineService();
         double fine = fineService.calculateFine(booking);
         booking.setFine(fine);
-
-        if (fine > 0) {
-            student.setPendingFine(student.getPendingFine() + fine);
-        }
-
-        booking.getEquipment().setAvailable(true);
+        if (fine > 0) student.setPendingFine(student.getPendingFine() + fine);
+        booking.getEquipment().incrementAvailable();  // use new method
         student.getActiveBookings().remove(booking);
+
+        // Notify next in waitlist
+        Student next = getNextFromWaitlist();
+        if (next != null)
+            System.out.println("Equipment free! Notifying: " + next.getName());
         return fine;
     }
 
-    /**
-     * Pay off a student's pending fine.
-     */
     public void payFine(Student student, double amount) {
-        double remaining = student.getPendingFine() - amount;
-        student.setPendingFine(Math.max(0, remaining));
+        student.setPendingFine(Math.max(0, student.getPendingFine() - amount));
     }
 }
+

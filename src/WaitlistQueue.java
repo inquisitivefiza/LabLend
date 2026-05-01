@@ -1,48 +1,43 @@
-// DSA Concept: Queue (FIFO) using Linked List  —  manages equipment waitlist
-public class WaitlistQueue<T> {
-    private Node<T> front;
-    private Node<T> rear;
-    private int size;
 
-    private static class Node<T> {
-        T data;
-        Node<T> next;
-        Node(T data) {
-            this.data = data;
-            this.next = null;
-        }
+
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class WaitlistQueueTest {
+
+    @Test
+    void fifoOrder_isCorrect() {
+        WaitlistQueue<String> q = new WaitlistQueue<>();
+        q.enqueue("Alice");
+        q.enqueue("Bob");
+        q.enqueue("Charlie");
+        // First in = first out
+        assertEquals("Alice",   q.dequeue());
+        assertEquals("Bob",     q.dequeue());
+        assertEquals("Charlie", q.dequeue());
     }
 
-    /** Add student/booking to end of waitlist — O(1) */
-    public void enqueue(T item) {
-        Node<T> newNode = new Node<>(item);
-        if (rear != null)
-            rear.next = newNode;
-        rear = newNode;
-        if (front == null)
-            front = rear;
-        size++;
+    @Test
+    void peek_doesNotRemove() {
+        WaitlistQueue<String> q = new WaitlistQueue<>();
+        q.enqueue("Alice");
+        q.peek();           // should NOT remove Alice
+        assertEquals(1, q.size());
+        assertEquals("Alice", q.dequeue());
     }
 
-    /** Remove next student/booking from front — O(1) */
-    public T dequeue() {
-        if (isEmpty())
-            throw new RuntimeException("Queue Empty");
-        T data = front.data;
-        front = front.next;
-        if (front == null)
-            rear = null;
-        size--;
-        return data;
+    @Test
+    void dequeueEmpty_throwsException() {
+        WaitlistQueue<String> q = new WaitlistQueue<>();
+        assertThrows(RuntimeException.class, q::dequeue);
     }
 
-    /** Peek at front without removing — O(1) */
-    public T peek() {
-        if (isEmpty())
-            throw new RuntimeException("Queue Empty");
-        return front.data;
+    @Test
+    void isEmpty_correctlyDetected() {
+        WaitlistQueue<String> q = new WaitlistQueue<>();
+        assertTrue(q.isEmpty());
+        q.enqueue("X");
+        assertFalse(q.isEmpty());
     }
-
-    public boolean isEmpty() { return front == null; }
-    public int size()        { return size; }
 }
+
