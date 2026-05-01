@@ -1,43 +1,28 @@
+import java.util.LinkedList;
 
+// DSA Concept: Queue (FIFO) — used for waitlist management
+public class WaitlistQueue<T> {
+    private LinkedList<T> queue = new LinkedList<>();
 
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-
-public class WaitlistQueueTest {
-
-    @Test
-    void fifoOrder_isCorrect() {
-        WaitlistQueue<String> q = new WaitlistQueue<>();
-        q.enqueue("Alice");
-        q.enqueue("Bob");
-        q.enqueue("Charlie");
-        // First in = first out
-        assertEquals("Alice",   q.dequeue());
-        assertEquals("Bob",     q.dequeue());
-        assertEquals("Charlie", q.dequeue());
+    /** Add to the back of the queue — O(1) */
+    public void enqueue(T item) {
+        queue.addLast(item);
     }
 
-    @Test
-    void peek_doesNotRemove() {
-        WaitlistQueue<String> q = new WaitlistQueue<>();
-        q.enqueue("Alice");
-        q.peek();           // should NOT remove Alice
-        assertEquals(1, q.size());
-        assertEquals("Alice", q.dequeue());
+    /** Remove from the front of the queue — O(1) */
+    public T dequeue() {
+        if (isEmpty())
+            throw new RuntimeException("Queue is empty");
+        return queue.removeFirst();
     }
 
-    @Test
-    void dequeueEmpty_throwsException() {
-        WaitlistQueue<String> q = new WaitlistQueue<>();
-        assertThrows(RuntimeException.class, q::dequeue);
+    /** Peek at the front without removing — O(1) */
+    public T peek() {
+        if (isEmpty())
+            throw new RuntimeException("Queue is empty");
+        return queue.peekFirst();
     }
 
-    @Test
-    void isEmpty_correctlyDetected() {
-        WaitlistQueue<String> q = new WaitlistQueue<>();
-        assertTrue(q.isEmpty());
-        q.enqueue("X");
-        assertFalse(q.isEmpty());
-    }
+    public boolean isEmpty() { return queue.isEmpty(); }
+    public int size()        { return queue.size(); }
 }
-

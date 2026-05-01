@@ -1,5 +1,3 @@
-
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -13,11 +11,11 @@ public class BookingServiceTest {
     @BeforeEach           // runs before EACH test — fresh state every time
     void setup() {
         inventory = new InventoryMap();
-        inventory.addEquipment(new Equipment("E001","Oscilloscope",3));
-        inventory.addEquipment(new Equipment("E002","Multimeter",1));
-        inventory.addEquipment(new Equipment("E003","Soldering Iron",2));
+        inventory.addEquipment(new Equipment("E001", "Oscilloscope",   3));
+        inventory.addEquipment(new Equipment("E002", "Multimeter",     1));
+        inventory.addEquipment(new Equipment("E003", "Soldering Iron", 2));
         service = new BookingService(inventory);
-        alice = new Student("S001","Alice","alice@lab.com");
+        alice = new Student("S001", "Alice", "alice@lab.com");
     }
 
     @Test
@@ -34,9 +32,10 @@ public class BookingServiceTest {
         service.issueEquipment(alice, "E001");
         service.issueEquipment(alice, "E002");
         service.issueEquipment(alice, "E003");
-        // 4th booking should throw
+        // 4th booking should throw BorrowLimitExceededException
+        // Fixed: was "E004" (not in inventory → wrong exception thrown)
         assertThrows(BorrowLimitExceededException.class,
-                () -> service.issueEquipment(alice, "E004"));
+                () -> service.issueEquipment(alice, "E001"));
     }
 
     @Test
@@ -53,5 +52,3 @@ public class BookingServiceTest {
                 () -> service.issueEquipment(alice, "E001"));
     }
 }
-
-
