@@ -54,7 +54,7 @@ public class Main {
                 }
 
                 case 4 -> {
-                    System.out.print("Student ID: "); String sid = sc.nextLine();
+                   System.out.print("Student ID: "); String sid = sc.nextLine();
                     Student st = students.get(sid);
                     if (st == null) { System.out.println("Not found."); break; }
                     bookingService.payFine(st, st.getPendingFine());
