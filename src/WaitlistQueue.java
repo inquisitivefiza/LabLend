@@ -1,43 +1,43 @@
+import java.util.LinkedList;
 
+public class WaitlistQueue<S extends User> {
 
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+    private final LinkedList<S> queue = new LinkedList<>();
 
-public class WaitlistQueueTest {
-
-    @Test
-    void fifoOrder_isCorrect() {
-        WaitlistQueue<String> q = new WaitlistQueue<>();
-        q.enqueue("Alice");
-        q.enqueue("Bob");
-        q.enqueue("Charlie");
-        // First in = first out
-        assertEquals("Alice",   q.dequeue());
-        assertEquals("Bob",     q.dequeue());
-        assertEquals("Charlie", q.dequeue());
+    public void enqueue(S user) {
+        queue.addLast(user);
     }
 
-    @Test
-    void peek_doesNotRemove() {
-        WaitlistQueue<String> q = new WaitlistQueue<>();
-        q.enqueue("Alice");
-        q.peek();           // should NOT remove Alice
-        assertEquals(1, q.size());
-        assertEquals("Alice", q.dequeue());
+    public S dequeue() {
+        if (isEmpty())
+            throw new RuntimeException("Queue is empty");
+        return queue.removeFirst();
     }
 
-    @Test
-    void dequeueEmpty_throwsException() {
-        WaitlistQueue<String> q = new WaitlistQueue<>();
-        assertThrows(RuntimeException.class, q::dequeue);
+    public S peek() {
+        if (isEmpty())
+            throw new RuntimeException("Queue is empty");
+        return queue.getFirst();
     }
 
-    @Test
-    void isEmpty_correctlyDetected() {
-        WaitlistQueue<String> q = new WaitlistQueue<>();
-        assertTrue(q.isEmpty());
-        q.enqueue("X");
-        assertFalse(q.isEmpty());
+    public int size() {
+        return queue.size();
     }
+
+    public boolean isEmpty() {
+        return queue.isEmpty();
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
-
